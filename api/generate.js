@@ -10,18 +10,26 @@ export default async function handler(req, res) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-    const { review } = req.body || {};
+const { review, tone = "professionell" } = req.body || {};
+const toneRules = {
+  professionell: "Schreibe professionell, freundlich, seriös. 3–5 Sätze. Kein Slang.",
+  kurz: "Schreibe sehr kurz und prägnant. 1–2 Sätze.",
+  locker: "Schreibe locker, herzlich und nahbar. 2–4 Sätze. Kein übertriebener Slang."
+};
+
+const toneInstruction = toneRules[tone] || toneRules.professionell;
     if (!review || typeof review !== "string") {
       return res.status(400).json({ error: "Missing review text" });
     }
 
     const input =
-      "Du bist ein professioneller Kundenservice-Assistent für kleine Restaurants. " +
-      "Schreibe eine kurze, höfliche, menschlich klingende Antwort auf diese Google-Bewertung. " +
-      "Wenn negativ: entschuldigen, Verständnis zeigen, Lösung anbieten. " +
-      "Wenn positiv: bedanken und wieder einladen.\n\n" +
-      "Bewertung:\n" + review;
-
+  "Du bist ein professioneller Kundenservice-Assistent für kleine Restaurants.\n" +
+  toneInstruction + "\n" +
+  "Wichtig: Gib nur die fertige Antwort zurück, ohne Erklärungen, ohne Aufzählung der Regeln.\n" +
+  "Wenn negativ: entschuldigen, Verständnis zeigen, Lösung anbieten.\n" +
+  "Wenn positiv: bedanken und wieder einladen.\n\n" +
+  "Bewertung:\n" + review;
+    
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
