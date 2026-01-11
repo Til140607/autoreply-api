@@ -2,53 +2,74 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AutoReply – KI Antwort Generator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Google-Bewertungen – Antwortgenerator</title>
   <style>
-    body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}
-    textarea{width:100%;min-height:140px;padding:12px}
-    button{padding:10px 14px;margin-top:10px;cursor:pointer}
-    .box{white-space:pre-wrap;border:1px solid #ddd;padding:12px;margin-top:12px}
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 34px; margin: 0 0 10px; }
+    p { margin: 0 0 16px; color: #333; }
+    textarea { width: 100%; min-height: 160px; padding: 12px; font-size: 16px; }
+    button { margin-top: 12px; padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    .box { margin-top: 18px; padding: 12px; border: 1px solid #ddd; background: #fafafa; white-space: pre-wrap; }
+    .small { color: #666; font-size: 13px; margin-top: 6px; }
   </style>
 </head>
 <body>
   <h1>Automatische Antworten auf Google-Bewertungen</h1>
-  <p>Bewertung einfügen:</p>
-  <textarea id="review"></textarea>
-  <br>
-  <button id="go">Antwort generieren</button>
+  <p>Kopiere eine Google-Bewertung hinein und erhalte sofort eine professionelle Antwort.</p>
 
-  <h2>Antwort</h2>
-  <div id="out" class="box">Noch keine Antwort.</div>
+  <label for="review"><b>Bewertung</b></label>
+  <textarea id="review" placeholder="Hier Google-Bewertung einfügen..."></textarea>
+
+  <br />
+  <button id="generateBtn">Antwort generieren</button>
+  <div class="small" id="status"></div>
+
+  <h3>Antwort</h3>
+  <div class="box" id="result">Hier erscheint die Antwort der KI.</div>
 
   <script>
-    const ta = document.getElementById("review");
-    const out = document.getElementById("out");
-    const btn = document.getElementById("go");
+    const API_URL = "/api/generate"; // gleiche Domain auf Vercel
+
+    const btn = document.getElementById("generateBtn");
+    const reviewEl = document.getElementById("review");
+    const resultEl = document.getElementById("result");
+    const statusEl = document.getElementById("status");
 
     btn.addEventListener("click", async () => {
-      const review = ta.value.trim();
-      if (!review) { out.textContent = "Bitte eine Bewertung eingeben."; return; }
+      const review = reviewEl.value.trim();
+      if (!review) {
+        resultEl.textContent = "Bitte zuerst eine Bewertung einfügen.";
+        return;
+      }
 
       btn.disabled = true;
-      out.textContent = "Generiere Antwort…";
+      statusEl.textContent = "Generiere Antwort...";
+      resultEl.textContent = "";
 
       try {
-        const res = await fetch("/api/generate", {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ review })
         });
 
         const data = await res.json();
-        out.textContent = data.reply || ("Fehler: " + (data.error || "Unbekannt"));
+
+        if (!res.ok) {
+          resultEl.textContent = "Fehler: " + (data.error || "Unbekannt");
+        } else {
+          resultEl.textContent = data.reply || "(Keine Antwort erhalten)";
+        }
       } catch (e) {
-        out.textContent = "Netzwerkfehler";
+        resultEl.textContent = "Netzwerkfehler: " + e.message;
       } finally {
         btn.disabled = false;
+        statusEl.textContent = "";
       }
     });
   </script>
 </body>
 </html>
+
 
