@@ -29,46 +29,46 @@
   <div class="box" id="result">Hier erscheint die Antwort der KI.</div>
 
   <script>
-    const API_URL = "/api/generate"; // gleiche Domain auf Vercel
+const API_URL = "/api/generate";
 
-    const btn = document.getElementById("generateBtn");
-    const reviewEl = document.getElementById("review");
-    const resultEl = document.getElementById("result");
-    const statusEl = document.getElementById("status");
+const btn = document.getElementById("generateBtn");
+const reviewEl = document.getElementById("review");
+const resultEl = document.getElementById("result");
+const statusEl = document.getElementById("status");
 
-    btn.addEventListener("click", async () => {
-      const review = reviewEl.value.trim();
-      if (!review) {
-        resultEl.textContent = "Bitte zuerst eine Bewertung einfügen.";
-        return;
-      }
+btn.addEventListener("click", async () => {
+  const review = reviewEl.value.trim();
+  if (!review) {
+    resultEl.textContent = "Bitte zuerst eine Bewertung eingeben.";
+    return;
+  }
 
-      btn.disabled = true;
-      statusEl.textContent = "Generiere Antwort...";
-      resultEl.textContent = "";
+  btn.disabled = true;
+  statusEl.textContent = "Generiere Antwort...";
+  resultEl.textContent = "";
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ review })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          resultEl.textContent = "Fehler: " + (data.error || "Unbekannt");
-        } else {
-          resultEl.textContent = data.reply || "(Keine Antwort erhalten)";
-        }
-      } catch (e) {
-        resultEl.textContent = "Netzwerkfehler: " + e.message;
-      } finally {
-        btn.disabled = false;
-        statusEl.textContent = "";
-      }
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ review })
     });
-  </script>
+
+    const data = await res.json();
+
+    resultEl.textContent =
+      data.reply ||
+      data.text ||
+      "Keine Antwort erhalten.";
+  } catch (e) {
+    resultEl.textContent = "Netzwerkfehler";
+  } finally {
+    btn.disabled = false;
+    statusEl.textContent = "";
+  }
+});
+</script>
+
 </body>
 </html>
 
