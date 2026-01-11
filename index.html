@@ -12,6 +12,11 @@
     button { margin-top: 12px; padding: 10px 14px; font-size: 16px; cursor: pointer; }
     .box { margin-top: 18px; padding: 12px; border: 1px solid #ddd; background: #fafafa; white-space: pre-wrap; }
     .small { color: #666; font-size: 13px; margin-top: 6px; }
+    select {
+  margin-top: 6px;
+  padding: 8px;
+  font-size: 16px;
+}
   </style>
 </head>
 <body>
@@ -20,6 +25,13 @@
 
   <label for="review"><b>Bewertung</b></label>
   <textarea id="review" placeholder="Hier Google-Bewertung einfügen..."></textarea>
+
+  <label for="tone"><b>Tonalität</b></label>
+<select id="tone">
+  <option value="professionell" selected>Professionell</option>
+  <option value="kurz">Kurz</option>
+  <option value="locker">Locker</option>
+</select>
 
   <br />
   <button id="generateBtn">Antwort generieren</button>
@@ -30,6 +42,7 @@
 <button id="copyBtn">Antwort kopieren</button>
 <div id="copyStatus" class="small"></div>
 <script>
+const toneEl = document.getElementById("tone");
 const API_URL = "/api/generate";
 
 const btn = document.getElementById("generateBtn");
@@ -59,8 +72,11 @@ btn.addEventListener("click", async () => {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ review })
-    });
+      body: JSON.stringify({
+  review,
+  tone: toneEl.value
+})
+    
 
     const data = await res.json();
 
