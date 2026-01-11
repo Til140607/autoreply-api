@@ -1,47 +1,62 @@
 export default async function handler(req, res) {
-  // Erlaubt, dass Webflow deine API aufrufen kann
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Browser schickt manchmal zuerst eine "OPTIONS"-Anfrage (Preflight)
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Use POST" });
-  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+
     const { review } = req.body || {};
     if (!review || typeof review !== "string") {
-      return res.status(400).json({ error: "No review provided" });
+      return res.status(400).json({ error: "Missing review text" });
     }
 
-    // OpenAI Call (Key kommt später sicher über Vercel Environment Variable)
+    const input =
+      "Du bist ein professioneller Kundenservice-Assistent für kleine Restaurants. " +
+      "Schreibe eine kurze, höfliche, menschlich klingende Antwort auf diese Google-Bewertung. " +
+      "Wenn negativ: entschuldigen, Verständnis zeigen, Lösung anbieten. " +
+      "Wenn positiv: bedanken und wieder einladen.\n\n" +
+      "Bewertung:\n" + review;
+
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        input: `Du bist ein professioneller Kundenservice-Assistent für ein kleines Restaurant.
-Schreibe eine kurze, höfliche Antwort auf folgende Google-Bewertung (2–5 Sätze).
-
-Google-Bewertung:
-${review}`
+        input,
+        temperature: 0.4
       })
     });
 
     const data = await r.json();
+
     if (!r.ok) {
-      return res.status(r.status).json({ error: "OpenAI error", details: data });
+      return res.status(r.status).json({ error: "OpenAI request failed", details: data });
     }
 
-    const text = data.output_text || "Keine Antwort erhalten.";
-    return res.status(200).json({ reply: text.trim() });
-  } catch (err) {
-    return res.status(500).json({ error: "Server error", details: String(err) });
+    // robust: nimm output_text, sonst fallback
+    const text =
+      (typeof data.output_text === "string" && data.output_text.trim()) ||
+      (data.output?.[0]?.content || [])
+        .map(c => c?.text)
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+
+    if (!text) {
+      return res.status(500).json({ error: "No text returned", raw: data });
+    }
+
+    // Wir geben BEIDES zurück, damit dein Frontend sicher was findet:
+    return res.status(200).json({ reply: text, text });
+  } catch (e) {
+    return res.status(500).json({ error: "Server error", details: String(e) });
   }
 }
