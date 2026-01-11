@@ -27,8 +27,9 @@
 
   <h3>Antwort</h3>
   <div class="box" id="result">Hier erscheint die Antwort der KI.</div>
-
-  <script>
+<button id="copyBtn">Antwort kopieren</button>
+<div id="copyStatus" class="small"></div>
+<script>
 const API_URL = "/api/generate";
 
 const btn = document.getElementById("generateBtn");
@@ -36,10 +37,17 @@ const reviewEl = document.getElementById("review");
 const resultEl = document.getElementById("result");
 const statusEl = document.getElementById("status");
 
+const copyBtn = document.getElementById("copyBtn");
+const copyStatus = document.getElementById("copyStatus");
+
+// Copy-Button am Anfang deaktivieren
+copyBtn.disabled = true;
+
 btn.addEventListener("click", async () => {
   const review = reviewEl.value.trim();
   if (!review) {
     resultEl.textContent = "Bitte zuerst eine Bewertung eingeben.";
+    copyBtn.disabled = true;
     return;
   }
 
@@ -56,19 +64,44 @@ btn.addEventListener("click", async () => {
 
     const data = await res.json();
 
-    resultEl.textContent =
-      data.reply ||
-      data.text ||
-      "Keine Antwort erhalten.";
+    const reply =
+      (data.reply && String(data.reply).trim()) ||
+      (data.text && String(data.text).trim()) ||
+      "";
+
+    if (!reply) {
+      resultEl.textContent = "Keine Antwort erhalten.";
+      copyBtn.disabled = true;
+    } else {
+      resultEl.textContent = reply;
+      copyBtn.disabled = false;
+    }
   } catch (e) {
     resultEl.textContent = "Netzwerkfehler";
+    copyBtn.disabled = true;
   } finally {
     btn.disabled = false;
     statusEl.textContent = "";
   }
 });
-</script>
 
+copyBtn.addEventListener("click", async () => {
+  const text = (resultEl.textContent || "").trim();
+
+  if (!text || text === "Hier erscheint die Antwort der KI.") {
+    copyStatus.textContent = "Noch keine Antwort zum Kopieren.";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    copyStatus.textContent = "Kopiert!";
+    setTimeout(() => (copyStatus.textContent = ""), 1500);
+  } catch (e) {
+    copyStatus.textContent = "Kopieren hat nicht geklappt. Markiere den Text manuell.";
+  }
+});
+</script>
 </body>
 </html>
 
