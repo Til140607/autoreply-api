@@ -32,6 +32,13 @@
   <option value="kurz">Kurz</option>
   <option value="locker">Locker</option>
 </select>
+  <br />
+
+<label for="lang"><b>Sprache</b></label>
+<select id="lang">
+  <option value="de" selected>Deutsch</option>
+  <option value="en">Englisch</option>
+</select>
 
   <br />
   <button id="generateBtn">Antwort generieren</button>
@@ -44,6 +51,7 @@
 <script>
 const toneEl = document.getElementById("tone");
 const API_URL = "/api/generate";
+const langEl = document.getElementById("lang");
 
 const btn = document.getElementById("generateBtn");
 const reviewEl = document.getElementById("review");
@@ -58,6 +66,8 @@ copyBtn.disabled = true;
 
 btn.addEventListener("click", async () => {
   const review = reviewEl.value.trim();
+  const tone = toneEl.value;
+const lang = langEl.value;
   if (!review) {
     resultEl.textContent = "Bitte zuerst eine Bewertung eingeben.";
     copyBtn.disabled = true;
@@ -69,13 +79,11 @@ btn.addEventListener("click", async () => {
   resultEl.textContent = "";
 
   try {
-    const res = await fetch(API_URL, {
+        const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-  review,
-  tone: toneEl.value
-})
+      body: JSON.stringify({ review, tone, lang })
+    });
     
 
     const data = await res.json();
