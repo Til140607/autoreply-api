@@ -67,7 +67,8 @@ copyBtn.disabled = true;
 btn.addEventListener("click", async () => {
   const review = reviewEl.value.trim();
   const tone = toneEl.value;
-const lang = langEl.value;
+  const lang = langEl.value;
+
   if (!review) {
     resultEl.textContent = "Bitte zuerst eine Bewertung eingeben.";
     copyBtn.disabled = true;
@@ -77,16 +78,25 @@ const lang = langEl.value;
   btn.disabled = true;
   statusEl.textContent = "Generiere Antwort...";
   resultEl.textContent = "";
+  copyStatus.textContent = "";
+  copyBtn.disabled = true;
 
   try {
-        const res = await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ review, tone, lang })
     });
-    
 
     const data = await res.json();
+
+    if (!res.ok) {
+      // Zeigt dir die Server-Fehler sauber an (z.B. OpenAI error)
+      resultEl.textContent = data?.error
+        ? `Fehler: ${data.error}`
+        : "Fehler vom Server.";
+      return;
+    }
 
     const reply =
       (data.reply && String(data.reply).trim()) ||
@@ -95,14 +105,13 @@ const lang = langEl.value;
 
     if (!reply) {
       resultEl.textContent = "Keine Antwort erhalten.";
-      copyBtn.disabled = true;
-    } else {
-      resultEl.textContent = reply;
-      copyBtn.disabled = false;
+      return;
     }
+
+    resultEl.textContent = reply;
+    copyBtn.disabled = false;
   } catch (e) {
     resultEl.textContent = "Netzwerkfehler";
-    copyBtn.disabled = true;
   } finally {
     btn.disabled = false;
     statusEl.textContent = "";
