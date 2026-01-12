@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-const { review, tone = "professionell" } = req.body || {};
+const { review, tone = "professionell", lang = "de" } = req.body || {};
 const toneRules = {
   professionell: "Schreibe professionell, freundlich, seriös. 3–5 Sätze. Kein Slang.",
   kurz: "Schreibe sehr kurz und prägnant. 1–2 Sätze.",
@@ -22,13 +22,21 @@ const toneInstruction = toneRules[tone] || toneRules.professionell;
       return res.status(400).json({ error: "Missing review text" });
     }
 
-    const input =
-  "Du bist ein professioneller Kundenservice-Assistent für kleine Restaurants.\n" +
-  toneInstruction + "\n" +
-  "Wichtig: Gib nur die fertige Antwort zurück, ohne Erklärungen, ohne Aufzählung der Regeln.\n" +
-  "Wenn negativ: entschuldigen, Verständnis zeigen, Lösung anbieten.\n" +
-  "Wenn positiv: bedanken und wieder einladen.\n\n" +
-  "Bewertung:\n" + review;
+    const languageInstruction =
+  lang === "en"
+    ? "Write the reply in English."
+    : "Schreibe die Antwort auf Deutsch.";
+
+const input =
+  "You are a professional customer support assistant for small restaurants.\n" +
+  languageInstruction + "\n" +
+  "Style rules:\n" +
+  "- " + toneInstruction + "\n" +
+  "Task:\n" +
+  "Write a short, polite, human-sounding reply to this Google review.\n" +
+  "If negative: apologize, show understanding, offer a solution.\n" +
+  "If positive: thank them and invite them back.\n\n" +
+  "Google review:\n" + review;
     
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
