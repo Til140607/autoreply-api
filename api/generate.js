@@ -12,10 +12,22 @@ export default async function handler(req, res) {
 
 const { review, tone = "professionell", lang = "de" } = req.body || {};
 const toneRules = {
-  professionell: "Schreibe professionell, freundlich, seriös. 3–5 Sätze. Kein Slang.",
-  kurz: "Schreibe sehr kurz und prägnant. 1–2 Sätze.",
-  locker: "Schreibe locker, herzlich und nahbar. 2–4 Sätze. Kein übertriebener Slang."
+  professionell: {
+    de: "Schreibe professionell, freundlich und seriös. 3–5 Sätze. Kein Slang.",
+    en: "Write professionally, friendly, and polished. 3–5 sentences. No slang."
+  },
+  kurz: {
+    de: "Schreibe sehr kurz und prägnant. 1–2 Sätze.",
+    en: "Write very short and concise. 1–2 sentences."
+  },
+  locker: {
+    de: "Schreibe locker, herzlich und nahbar. 2–4 Sätze. Kein übertriebener Slang.",
+    en: "Write casual, warm, and approachable. 2–4 sentences. No heavy slang."
+  }
 };
+    const safeLang = (lang === "en" ? "en" : "de");
+const toneInstruction =
+  toneRules[tone]?.[safeLang] || toneRules.professionell[safeLang];
 
 const toneInstruction = toneRules[tone] || toneRules.professionell;
     if (!review || typeof review !== "string") {
@@ -27,16 +39,29 @@ const toneInstruction = toneRules[tone] || toneRules.professionell;
     ? "Write the reply in English."
     : "Schreibe die Antwort auf Deutsch.";
 
-const input =
-  "You are a professional customer support assistant for small restaurants.\n" +
-  languageInstruction + "\n" +
-  "Style rules:\n" +
-  "- " + toneInstruction + "\n" +
-  "Task:\n" +
-  "Write a short, polite, human-sounding reply to this Google review.\n" +
-  "If negative: apologize, show understanding, offer a solution.\n" +
-  "If positive: thank them and invite them back.\n\n" +
-  "Google review:\n" + review;
+const systemText =
+  safeLang === "en"
+    ? "You are a professional customer support assistant for small restaurants."
+    : "Du bist ein professioneller Kundenservice-Assistent für kleine Restaurants.";
+
+const userText =
+  safeLang === "en"
+    ? `Write a short, polite, human-sounding reply to this Google review.
+If the review is negative: apologize, show understanding, and offer a solution.
+If the review is positive: thank them and invite them to come back.
+
+Tone rule: ${toneInstruction}
+
+Review:
+${review}`
+    : `Schreibe eine kurze, höfliche, menschlich klingende Antwort auf diese Google-Bewertung.
+Wenn negativ: entschuldigen, Verständnis zeigen, Lösung anbieten.
+Wenn positiv: bedanken und wieder einladen.
+
+Tonalitäts-Regel: ${toneInstruction}
+
+Bewertung:
+${review}`;
     
     const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -45,10 +70,13 @@ const input =
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        input,
-        temperature: 0.4
-      })
+  model: "gpt-4o-mini",
+  input: [
+    { role: "system", content: systemText },
+    { role: "user", content: userText }
+  ],
+  temperature: 0.4
+})
     });
 
     const data = await r.json();
